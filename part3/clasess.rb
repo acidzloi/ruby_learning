@@ -31,65 +31,89 @@
 
 class Station
 
-    attr_reader :name, :trains
+    def name
+      @name
+    end
+
+    def trains
+      @trains
+    end
 
     def initialize(name)
-      @name = name
-      @trains = []
+      name = name
+      trains = []
     end
 
     def accept_train(train)
-      @trains << train
+      trains << train
     end
 
     def list_trains
-      puts @trains
+      trains
     end
 
     def list_trains_by_type(type)
-      puts @trains.select { |train| train.type == type } 
+      trains.select { |train| train.type == type } 
     end
 
     def send_train(train)
-      @trains.delete(train)
+      trains.delete(train)
     end
 
 end
 
 class Route
 
-    attr_reader :stations
+    def stations
+      @stations
+    end
 
     def initialize(start_station, end_station)
-      @stations = [start_station, end_station]
+      stations = [start_station, end_station]
     end
 
     def add_station(station)
-      @stations.insert(-2, station)
+      stations.insert(-2, station)
     end
 
     def delete_station(station)
-      @stations.delete(station) if @stations.include?(station) && @stations.size > 2
+      stations.delete(station) if stations.include?(station) && stations.size > 2
     end
 
     def stations_list
       stations.each do |station|
-        puts station
+        station
       end
     end
 end
 
 class Train
 
-    attr_reader :number, :type, :carriages, :current_station
+    attr_reader :number
+
+  def number
+    @number
+  end  
+
+  def type
+    @type
+  end  
+
+  def carriages
+    @carriages
+  end  
+
+  def current_station_index
+    @current_station_index
+  end
 
   def initialize(number, type, carriages)
-    @number = number
-    @type = type
-    @carriages = carriages
+    number = number
+    type = type
+    carriages = carriages
     @speed = 0
     @route = nil
-    @current_station = 0
+    current_station_index = 0
   end
 
 
@@ -98,7 +122,7 @@ class Train
   end
 
   def current_speed
-    puts @speed
+    @speed
   end
 
   def brake
@@ -106,70 +130,46 @@ class Train
   end
 
   def carriage_count
-    puts @carriage
-  end
-
-  def carriage_count
-    puts @carriage
+    @carriage
   end
 
   def attach_carriage
-    if @speed > 0
-      puts "Поезд движется, нельзя прицепить вагон"
-    else
-      @carriages += 1
-    end
+    carriages += 1 if @speed == 0
   end
 
   def detach_carriage
-    if @speed > 0
-      puts "Поезд движется, нельзя отцепить вагон"
-    else
-      @carriages -= 1
-    end
+    carriages -= 1 if @speed == 0 && carriages > 0
   end
 
   def assign_route(route)
     @route = route
-    @current_station = 0
+    current_station_index = 0
     current_station.accept_train(self)
   end
 
   def current_station
-      @route.stations[@current_station]
+    @route.stations[current_station_index]
   end
 
   def previous_station
-    if @current_station == 0
-      return nil
-    else
-      @route.stations[@current_station - 1]
-    end
+      @route.stations[current_station_index - 1] if current_station_index > 0
   end
 
   def next_station
-    if @current_station == @route.stations.length - 1
-      return nil
-    else
-      @route.stations[@current_station +1]
-    end
+      @route.stations[current_station_index +1]
   end
   
   def move_forward
-    puts "Поезд не назначен на маршрут" unless @route
-    puts "Поезд уже на последней станции" if @current_station >= @route.stations.size - 1
-
+    return unless next_station
     current_station.send_train(self) # Отправляем поезд с текущей станции
-    @current_station += 1
+    current_station_index += 1
     next_station.accept_train(self) # Принимаем поезд на следующей станции
   end
 
   def move_backward
-    puts "Поезд не назначен на маршрут" unless @route
-    puts "Поезд уже на первой станции" if @current_station <= 0
-
+    return unless previous_station
     current_station.send_train(self) # Отправляем поезд с текущей станции
-    @current_station -= 1
+    current_station_index -= 1
     previous_station.accept_train(self) # Принимаем поезд на предыдущей станции
   end
 
