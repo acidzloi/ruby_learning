@@ -28,97 +28,132 @@ require_relative 'cargo_train'
 require_relative 'passenger_carriage'
 require_relative 'cargo_carriage'
 
-stations = []
-trains = []
-routes = []
 
-loop do
-  puts "Выберите действие:"
-  puts "1. Создать станцию"
-  puts "2. Создать поезд"
-  puts "3. Создать маршрут"
-  puts "4. Назначить маршрут поезду"
-  puts "5. Добавить вагон к поезду"
-  puts "6. Отцепить вагон от поезда"
-  puts "7. Переместить поезд вперед"
-  puts "8. Переместить поезд назад"
-  puts "9. Просмотреть список станций и поездов на станциях"
-  puts "0. Выйти"
+class Main
+  MENU = [
+          { id: 1, title: 'Создать станцию', action: :create_station },
+          { id: 2, title: 'Создать поезд', action: :create_train },
+          { id: 3, title: 'Создать маршрут', action: :create_route }, 
+          { id: 4, title: 'Назначить маршрут поезду', action: :assign_route }, 
+          { id: 5, title: 'Добавить вагон к поезду', action: :add_carriage }, 
+          { id: 6, title: 'Отцепить вагон от поезда', action: :remove_carriage }, 
+          { id: 7, title: 'Переместить поезд вперед', action: :move_train_forward }, 
+          { id: 8, title: 'Переместить поезд назад', action: :move_train_backward }, 
+          { id: 9, title: 'Просмотреть список станций и поездов на станциях', action: :list_stations_trains }, 
+          { id: 0, title: 'Выйти', action: :exit_app } 
+        ]
 
-  choice = gets.to_i
+  def initialize
+    @stations = []
+    @trains = []
+    @routes = []
+  end
+  
+  def start
+    loop do
+      show_menu
+      choice = get_choice
+      take_action(choice)
+    end
+  end
 
-  case choice
-  when 1
+  def show_menu
+    MENU.each{ |item| puts "#{item[:id]}. #{item[:title]}" }
+  end
+
+  def get_choice
+    puts 'Выберите действие: '
+    gets.chomp.to_i
+  end
+
+  def take_action (choice)
+    item = MENU.find { |menu_item| menu_item[:id] == choice }
+    if item
+      send(item[:action])
+    else
+      puts 'Некорректный ввод, попробуйте снова.'
+    end
+  end
+
+  def create_station
     print "Введите название станции: "
     name = gets.chomp
-    stations << Station.new(name)
+    @stations << Station.new(name)
     puts "Станция '#{name}' создана."
+  end
 
-  when 2
+  def create_train
     print "Введите номер поезда: "
     number = gets.chomp
     print "Выберите тип (1 - пассажирский, 2 - грузовой): "
     type = gets.to_i
-    if type == 1
-      trains << PassengerTrain.new(number)
-      puts "Создан пассажирский поезд №#{number}."
-    else
-      trains << CargoTrain.new(number)
-      puts "Создан грузовой поезд №#{number}."
-    end
 
-  when 3
-    if stations.size < 2
+    if type == 1
+      @trains << PassengerTrain.new(number)
+      puts "Создан пассажирский поезд №#{number}."
+    elsif type == 2
+      @trains << CargoTrain.new(number)
+      puts "Создан грузовой поезд №#{number}."
+    else
+      puts 'Некорректный тип поезда.'
+    end
+  end
+
+  def create_route
+    if @stations.size < 2
       puts "Для создания маршрута нужно минимум 2 станции."
     else
       puts "Выберите начальную и конечную станции:"
-      stations.each_with_index { |station, index| puts "#{index + 1}. #{station.name}" }
+      @stations.each_with_index { |station, index| puts "#{index + 1}. #{station.name}" }
       print "Начальная станция: "
       start = gets.to_i - 1
       print "Конечная станция: "
       finish = gets.to_i - 1
-      routes << Route.new(stations[start], stations[finish])
+      @routes << Route.new(@stations[start], @stations[finish])
       puts "Маршрут создан."
     end
+  end
 
-  when 4
-    if trains.empty? || routes.empty?
+  def assign_route
+    if @trains.empty? || @routes.empty?
       puts "Нет поездов или маршрутов!"
     else
       puts "Выберите поезд:"
-      trains.each_with_index { |train, index| puts "#{index + 1}. Поезд №#{train.number} (#{train.type})" }
-      train = trains[gets.to_i - 1]
+      @trains.each_with_index { |train, index| puts "#{index + 1}. Поезд №#{train.number} (#{train.type})" }
+      train = @trains[gets.to_i - 1]
 
       puts "Выберите маршрут:"
-      routes.each_with_index do |route, index|
-        puts "#{index}. #{route.stations.first.name} -> #{route.stations.last.name}"
-      end
-      route = routes[gets.to_i - 1]
+      @routes.each_with_index do |route, index|
+      puts "#{index}. #{route.stations.first.name} -> #{route.stations.last.name}"
+    end
+      route = @routes[gets.to_i - 1]
 
       train.assign_route(route)
       puts "Поезду №#{train.number} назначен маршрут."
     end
+  end
 
-  when 5
-    if trains.empty?
+  def add_carriage
+    if @trains.empty?
       puts "Нет поездов!"
     else
       puts "Выберите поезд:"
-      trains.each_with_index { |train, index| puts "#{index + 1}. Поезд №#{train.number} (#{train.type})" }
-      train = trains[gets.to_i - 1]
+      @trains.each_with_index { |train, index| puts "#{index + 1}. Поезд №#{train.number} (#{train.type})" }
+      train = @trains[gets.to_i - 1]
 
       carriage = train.is_a?(PassengerTrain) ? PassengerCarriage.new : CargoCarriage.new
       train.add_carriage(carriage)
       puts "Вагон добавлен к поезду №#{train.number}."
     end
+  end
 
-  when 6
-    if trains.empty?
+  def remove_carriage
+    if @trains.empty?
       puts "Нет поездов!"
     else
       puts "Выберите поезд:"
-      trains.each_with_index { |train, index| puts "#{index + 1}. Поезд №#{train.number} (#{train.type})" }
-      train = trains[gets.to_i - 1]
+      @trains.each_with_index { |train, index| puts "#{index + 1}. Поезд №#{train.number} (#{train.type})" }
+      train = @trains[gets.to_i - 1]
 
       if train.carriages.empty?
         puts "У поезда нет вагонов!"
@@ -127,15 +162,16 @@ loop do
         puts "Вагон отцеплен от поезда №#{train.number}."
       end
     end
+  end
 
-  when 7
-    if trains.empty?
+  def move_train_forward
+    if @trains.empty?
       puts "Нет поездов!"
     else
       puts "Выберите поезд:"
-      trains.each_with_index { |train, index| puts "#{index + 1}. Поезд №#{train.number} (#{train.type})" }
-      train = trains[gets.to_i - 1]
-
+      @trains.each_with_index { |train, index| puts "#{index + 1}. Поезд №#{train.number} (#{train.type})" }
+      train = @trains[gets.to_i - 1]
+  
       if train.route.nil?
         puts "У поезда нет маршрута!"
       else
@@ -143,15 +179,16 @@ loop do
         puts "Поезд перемещен вперед. Теперь он на станции #{train.current_station.name}."
       end
     end
+  end
 
-  when 8
-    if trains.empty?
+  def move_train_backward
+    if @trains.empty?
       puts "Нет поездов!"
     else
       puts "Выберите поезд:"
-      trains.each_with_index { |train, index| puts "#{index + 1}. Поезд №#{train.number} (#{train.type})" }
-      train = trains[gets.to_i - 1]
-
+      @trains.each_with_index { |train, index| puts "#{index + 1}. Поезд №#{train.number} (#{train.type})" }
+      train = @trains[gets.to_i - 1]
+  
       if train.route.nil?
         puts "У поезда нет маршрута!"
       else
@@ -159,17 +196,20 @@ loop do
         puts "Поезд перемещен назад. Теперь он на станции #{train.current_station.name}."
       end
     end
+  end
 
-  when 9
-    stations.each do |station|
+  def list_stations_trains
+    @stations.each do |station|
       puts "Станция: #{station.name}"
       station.trains.each { |train| puts "  Поезд №#{train.number} (#{train.type})" }
     end
-
-  when 0
-    break
-
-  else
-    puts "Неверный выбор, попробуйте снова."
   end
+
+  def exit_app
+    puts 'Выход из программы...'
+    exit
+  end
+
 end
+
+Main.new.start
