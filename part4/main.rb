@@ -52,8 +52,7 @@ class Main
   def start
     loop do
       show_menu
-      choice = get_choice
-      take_action(choice)
+      take_action(get_choice)
     end
   end
 
@@ -68,16 +67,14 @@ class Main
 
   def take_action (choice)
     item = MENU.find { |menu_item| menu_item[:id] == choice }
-    if item
-      send(item[:action])
-    else
-      puts 'Некорректный ввод, попробуйте снова.'
-    end
+    item ? send(item[:action]) : puts('Некорректный ввод, попробуйте снова.')
   end
 
   def create_station
     print "Введите название станции: "
     name = gets.chomp
+    return puts 'Название не может быть пустым!' if name.empty?
+
     @stations << Station.new(name)
     puts "Станция '#{name}' создана."
   end
@@ -100,102 +97,62 @@ class Main
   end
 
   def create_route
-    if @stations.size < 2
-      puts "Для создания маршрута нужно минимум 2 станции."
-    else
-      puts "Выберите начальную и конечную станции:"
-      @stations.each_with_index { |station, index| puts "#{index + 1}. #{station.name}" }
-      print "Начальная станция: "
-      start = gets.to_i - 1
-      print "Конечная станция: "
-      finish = gets.to_i - 1
-      @routes << Route.new(@stations[start], @stations[finish])
-      puts "Маршрут создан."
-    end
+   
+    return puts "Для создания маршрута нужно минимум 2 станции." if @stations.size < 2
+    
+    show_stations
+    puts "Выберите начальную и конечную станции:"
+    @stations.each_with_index { |station, index| puts "#{index + 1}. #{station.name}" }
+    print "Начальная станция: "
+    start = @stations[gets.to_i - 1]
+    print "Конечная станция: "
+    finish = @stations[gets.to_i - 1]
+
+    @routes << Route.new(start, finish)
+    puts "Маршрут создан."
   end
 
   def assign_route
-    if @trains.empty? || @routes.empty?
-      puts "Нет поездов или маршрутов!"
-    else
-      puts "Выберите поезд:"
-      @trains.each_with_index { |train, index| puts "#{index + 1}. Поезд №#{train.number} (#{train.type})" }
-      train = @trains[gets.to_i - 1]
+    return puts "Нет поездов или маршрутов!" if @trains.empty? || @routes.empty?
 
-      puts "Выберите маршрут:"
-      @routes.each_with_index do |route, index|
-      puts "#{index}. #{route.stations.first.name} -> #{route.stations.last.name}"
-    end
-      route = @routes[gets.to_i - 1]
+    train = select_from(@trains, "Выберите поезд:")
+    return unless train
+  
+    route = select_from(@routes, "Выберите маршрут:")
+    return unless route
 
-      train.assign_route(route)
-      puts "Поезду №#{train.number} назначен маршрут."
-    end
+
+    return puts 'Некорректный ввод!' unless train && route
+    
+    train.assign_route(route)
+    puts "Поезду №#{train.number} назначен маршрут."
   end
 
-  def add_carriage
-    if @trains.empty?
-      puts "Нет поездов!"
-    else
-      puts "Выберите поезд:"
-      @trains.each_with_index { |train, index| puts "#{index + 1}. Поезд №#{train.number} (#{train.type})" }
-      train = @trains[gets.to_i - 1]
+  def add_carriage  
+    return puts "Нет поездов!" if @trains.empty?
 
-      carriage = train.is_a?(PassengerTrain) ? PassengerCarriage.new : CargoCarriage.new
-      train.add_carriage(carriage)
-      puts "Вагон добавлен к поезду №#{train.number}."
-    end
+    train = select_from(@trains, 'Выберите поезд')
+    train.add_carriage(train.is_a?(PassengerTrain) ? PassengerCarriage.new : CargoCarriage.new)
+    puts "Вагон добавлен к поезду №#{train.number}."
   end
 
   def remove_carriage
-    if @trains.empty?
-      puts "Нет поездов!"
-    else
-      puts "Выберите поезд:"
-      @trains.each_with_index { |train, index| puts "#{index + 1}. Поезд №#{train.number} (#{train.type})" }
-      train = @trains[gets.to_i - 1]
+    return puts 'Нет поездов!' if @trains.empty?
 
-      if train.carriages.empty?
-        puts "У поезда нет вагонов!"
-      else
-        train.remove_carriage(train.carriages.last)
-        puts "Вагон отцеплен от поезда №#{train.number}."
-      end
-    end
+    train = select_from(@trains, 'Выберите поезд')
+
+    return puts 'У поезда нет вагонов!' if train.carriages.empty?
+
+    train.remove_carriage(train.carriages.last)
+    puts "Вагон отцеплен от поезда №#{train.number}."
   end
 
   def move_train_forward
-    if @trains.empty?
-      puts "Нет поездов!"
-    else
-      puts "Выберите поезд:"
-      @trains.each_with_index { |train, index| puts "#{index + 1}. Поезд №#{train.number} (#{train.type})" }
-      train = @trains[gets.to_i - 1]
-  
-      if train.route.nil?
-        puts "У поезда нет маршрута!"
-      else
-        train.move_forward
-        puts "Поезд перемещен вперед. Теперь он на станции #{train.current_station.name}."
-      end
-    end
+    move_train(:move_forward, 'Поезд перемещен вперед')
   end
 
   def move_train_backward
-    if @trains.empty?
-      puts "Нет поездов!"
-    else
-      puts "Выберите поезд:"
-      @trains.each_with_index { |train, index| puts "#{index + 1}. Поезд №#{train.number} (#{train.type})" }
-      train = @trains[gets.to_i - 1]
-  
-      if train.route.nil?
-        puts "У поезда нет маршрута!"
-      else
-        train.move_backward
-        puts "Поезд перемещен назад. Теперь он на станции #{train.current_station.name}."
-      end
-    end
+    move_train(:move_backward, 'Поезд перемещен назад')
   end
 
   def list_stations_trains
@@ -203,6 +160,30 @@ class Main
       puts "Станция: #{station.name}"
       station.trains.each { |train| puts "  Поезд №#{train.number} (#{train.type})" }
     end
+  end
+
+  def show_stations
+    @stations.each_with_index { |station, index| puts "#{index + 1}. #{station.name}" }
+  end
+
+  def select_from(collection, message)
+    return puts "Список пуст!" if collection.empty?
+    puts message
+    collection.each_with_index do |item, index|
+      display_name = item.is_a?(Train) ? "Поезд №#{item.number} (#{item.class.to_s})" : item.to_s
+      puts "#{index + 1}. #{display_name}"
+    end
+    collection[gets.to_i - 1]
+  end
+
+  def move_train(direction, message)
+    return puts 'Нет поездов!' if @trains.empty?
+    
+    train = select_from(@trains, 'Выберите поезд')
+    return puts 'У поезда нет маршрута!' unless train.route
+    
+    train.send(direction)
+    puts "#{message}. Теперь он на станции #{train.current_station.name}."
   end
 
   def exit_app
