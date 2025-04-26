@@ -13,8 +13,6 @@
      - Если введенные данные невалидные, то программа должна вывести сообщение о возникших ошибках и заново запросить данные у пользователя. Реализовать это через механизм обработки исключений
 =end
 
-require_relative 'lib/menu'
-require_relative 'lib/main'
 require_relative 'station'
 require_relative 'route'
 require_relative 'train'
@@ -23,224 +21,206 @@ require_relative 'cargo_train'
 require_relative 'passenger_carriage'
 require_relative 'cargo_carriage'
 
-app = Main.new
+class Main
+  attr_reader :stations, :trains, :routes
 
-loop do
-  puts "\nМеню:"
-  puts Menu.show_menu
-  print "\nВыберите действие: "
+  MENU = [
+    { id: 1, title: 'Создать станцию', action: :create_station },
+    { id: 2, title: 'Создать поезд', action: :create_train },
+    { id: 3, title: 'Создать маршрут', action: :create_route }, 
+    { id: 4, title: 'Назначить маршрут поезду', action: :assign_route }, 
+    { id: 5, title: 'Добавить вагон к поезду', action: :add_carriage }, 
+    { id: 6, title: 'Отцепить вагон от поезда', action: :remove_carriage }, 
+    { id: 7, title: 'Переместить поезд вперед', action: :move_train_forward }, 
+    { id: 8, title: 'Переместить поезд назад', action: :move_train_backward }, 
+    { id: 9, title: 'Просмотреть список станций и поездов на станциях', action: :list_stations_trains }, 
+    { id: 0, title: 'Выйти', action: :exit_app } 
+  ]
 
-  input = gets.chomp
-  if input.strip.empty?
-    puts "Вы ничего не ввели. Попробуйте снова!"
-    next
+  def initialize
+    @stations = []
+    @trains = []
+    @routes = []
   end
 
-  choice = input.to_i
-  action = Menu.find_action(choice)
-
-  case action
-  when :create_station
+  def start
     loop do
-      begin
-        print "Введите название станции: "
-        name = gets.chomp
-        raise "Название не может быть пустым!" if name.strip.empty?
+      show_menu
+      choice = take_choice
+      handle_action(choice)
+    end
+  end
 
-        result = app.create_station(name)
-        puts result == true ? "Станция '#{name}' создана." : result
-        break
-      rescue RuntimeError => e
-        puts "Ошибка: #{e.message}"
+  private
+
+  def show_menu
+    puts "\nМеню:"
+    MENU.each { |item| puts "#{item[:id]}. #{item[:title]}" }
+  end
+
+  def take_choice
+    loop do
+      print "Введите номер действия: "
+      input = gets.chomp
+  
+      begin
+        return Integer(input)
+      rescue ArgumentError
+        puts "Ошибка: нужно ввести целое число. Попробуйте снова."
       end
     end
+  end
 
-  when :create_train
-    loop do
-      begin
-        print "Введите номер поезда (формат: XXX-XX или XXXXX): "
-        number = gets.chomp
+  def valid_number?(input)
+    input.match?(/^\d+$/)
+  end
 
-        print "Тип поезда (1 - пассажирский, 2 - грузовой): "
-        type = gets.to_i
+  def handle_action(choice)
+    item = MENU.find { |menu_item| menu_item[:id] == choice }
+    item ? send(item[:action]) : puts('Некорректный выбор, попробуйте снова.')
+  end
 
-        result = app.create_train(number, type)
-
-        if result == :passenger
-          puts "Создан пассажирский поезд №#{number}."
-          break
-        elsif result == :cargo
-          puts "Создан грузовой поезд №#{number}."
-          break
-        else
-          puts "Ошибка: #{result}"
-        end
-    
-    rescue ArgumentError
-      puts "Ошибка: тип поезда должен быть числом: 1 или 2."
-    rescue RuntimeError => e
+  def create_station
+    begin
+      print "Введите название станции: "
+      name = gets.chomp
+      station = Station.new(name)
+      @stations << station
+      puts "Станция '#{station.name}' успешно создана." if station.validate
+    rescue => e
       puts "Ошибка: #{e.message}"
     end
-  end  
+  end
 
-  when :create_route
-    if app.stations.size < 2
-      puts 'Создайте хотя бы 2 станции.'
-      next
-    end
-
-    app.stations.each_with_index { |s, i| puts "#{i}: #{s.name}" }
-    print "Начальная станция индекс: "
-    start_index = gets.to_i
-    print "Конечная станция индекс: "
-    end_index = gets.to_i
-
-    result = app.create_route(start_index, end_index)
-    puts result == true ? "Маршрут создан." : result
-
-  when :assign_route
-    loop do
-      begin
-        if app.trains.empty? || app.routes.empty?
-          puts 'Нет доступных поездов или маршрутов!'
-          break
-        end
-
-        puts "\nДоступные поезда:"
-        app.trains.each_with_index { |t, i| puts "#{i}: Поезд №#{t.number}" }
-        print "Выберите поезд по индексу: "
-        train_index_input = gets.chomp
-        raise "Индекс поезда не может быть пустым." if train_index_input.strip.empty?
-        train_index = Integer(train_index_input)
-
-        puts "\nДоступные маршруты:"
-        app.routes.each_with_index { |r, i| puts "#{i}: Маршрут #{r}" }
-        print "Выберите маршрут по индексу: "
-        route_index_input = gets.chomp
-        raise "Индекс маршрута не может быть пустым." if route_index_input.strip.empty?
-        route_index = Integer(route_index_input)
-
-        result = app.assign_route(train_index, route_index)
-        puts result == true ? "Маршрут назначен поезду." : result
-        break
-      rescue ArgumentError
-        puts "Индекс должен быть числом."
-      rescue RuntimeError => e
-        puts "Ошибка: #{e.message}"
-      end
-    end
-
-  when :add_carriage
-    loop do
-      begin
-        if app.trains.empty?
-          puts "Нет поездов для добавления вагона."
-          break
-        end
-
-        app.trains.each_with_index { |t, i| puts "#{i}: Поезд №#{t.number}" }
-        print "Выберите поезд по индексу: "
-        train_index = gets.to_i
-
-        result = app.add_carriage(train_index)
-        puts result == true ? "Вагон добавлен." : result
-        break
-      rescue RuntimeError => e
-        puts "Ошибка: #{e.message}"
-      end
-    end
-
-  when :remove_carriage
-    loop do
-      begin
-        if app.trains.empty?
-          puts "Нет поездов для удаления вагона."
-          break
-        end
-
-        app.trains.each_with_index { |t, i| puts "#{i}: Поезд №#{t.number}" }
-        print "Выберите поезд по индексу: "
-        train_index = gets.to_i
-
-        result = app.remove_carriage(train_index)
-        puts result == true ? "Вагон отцеплен." : result
-        break
-      rescue RuntimeError => e
-        puts "Ошибка: #{e.message}"
-      end
-    end
-
-  when :move_train_forward
-    loop do
-      begin
-        if app.trains.empty?
-          puts "Нет поездов для перемещения."
-          break
-        end
-
-        app.trains.each_with_index { |t, i| puts "#{i}: Поезд №#{t.number}" }
-        print "Выберите поезд по индексу: "
-        train_index = gets.to_i
-
-        result = app.move_train_forward(train_index)
-        if result.is_a?(String)
-          puts "Поезд перемещен на станцию: #{result}"
-          break
-        else
-          puts "#{result}"
-        end
-      rescue RuntimeError => e
-        puts "Ошибка: #{e.message}"
-      end
-    end
-
-
-  when :move_train_backward
-    loop do
-      begin
-        if app.trains.empty?
-          puts "Нет поездов для перемещения."
-          break
-        end
-
-        app.trains.each_with_index { |t, i| puts "#{i}: Поезд №#{t.number}" }
-        print "Выберите поезд по индексу: "
-        train_index = gets.to_i
-
-        result = app.move_train_backward(train_index)
-        if result.is_a?(String)
-          puts "Поезд перемещен на станцию: #{result}"
-          break
-        else
-          puts "#{result}"
-        end
-      rescue RuntimeError => e
-        puts "Ошибка: #{e.message}"
-      end
-    end
-
-  when :list_stations_trains
+  def create_train
     begin
-      stations = app.list_stations_trains
-      if stations.empty?
-        puts "Список станций пуст."
-      else
-        stations.each do |station_info|
-          puts "Станция: #{station_info[:station]}"
-          station_info[:trains].each do |train|
-            puts "  Поезд №#{train[:number]} (#{train[:type]})"
-          end
-        end
-      end
-    rescue RuntimeError => e
-      puts "Ошибка при выводе станций: #{e.message}"
+      print "Введите номер поезда (формат: XXX-XX или XXXXX): "
+      number = gets.chomp
+      print "Выберите тип: 1 — Пассажирский, 2 — Грузовой: "
+      type = gets.chomp.to_i 
+
+      train = case type
+            when 1 then PassengerTrain.new(number)
+            when 2 then CargoTrain.new(number)
+            else raise "Некорректный тип поезда"
+            end
+
+      @trains << train
+      puts "Поезд №#{train.number} успешно создан."
+    rescue StandardError => e
+      puts "Ошибка: #{e.message}"
     end
+  end
 
-  when :exit_app
-    puts 'Выход из программы...'
+  def create_route
+    begin
+      return puts "Для создания маршрута нужно минимум 2 станции." if @stations.size < 2
+
+      show_stations
+
+      puts "Выберите начальную станцию:"
+      start = @stations[gets.to_i - 1]
+
+      puts "Выберите конечную станцию:"
+      finish = @stations[gets.to_i - 1]
+
+      @routes << Route.new(start, finish)
+      puts "Маршрут успешно создан."
+    rescue StandardError => e
+      puts "Ошибка: #{e.message}"
+      puts "Попробуйте снова.\n\n"
+    end
+  end
+
+  def show_stations
+    @stations.each_with_index { |station, index| puts "#{index + 1}. #{station.name}" }
+  end
+
+  def assign_route
+    begin
+      return puts "Нет поездов или маршрутов!" if @trains.empty? || @routes.empty?
+
+      train = select_from(@trains, "Выберите поезд:")
+      return unless train
+    
+      route = select_from(@routes, "Выберите маршрут:")
+      return unless route
+      
+      raise "Поезд не выбран!" unless train
+      raise "Маршрут не выбран!" unless route
+
+      train.assign_route(route)
+      puts "Поезду №#{train.number} назначен маршрут."
+    rescue StandardError => e
+      puts "Ошибка: #{e.message}"
+    end
+  end
+
+  def add_carriage
+    return puts "Нет поездов!" if @trains.empty?
+
+    train = select_from(@trains, 'Выберите поезд:')
+
+    carriage = train.is_a?(PassengerTrain) ? PassengerCarriage.new : CargoCarriage.new
+    if train.add_carriage(carriage)
+      puts "Вагон успешно добавлен к поезду №#{train.number}."
+    else
+      puts "Не удалось добавить вагон. Возможно, поезд находится в движении или тип вагона не совпадает."
+    end
+  end
+
+  def remove_carriage
+    return puts "Нет поездов!" if @trains.empty?
+
+    train = select_from(@trains, 'Выберите поезд:')
+    return puts 'У поезда нет вагонов!' if train.carriages.empty?
+
+    carriage = train.carriages.last
+    train.remove_carriage(carriage)
+    puts "Вагон успешно отцеплен от поезда №#{train.number}."
+  end
+
+  def move_train_forward
+    move_train(:move_forward, "Поезд перемещён вперёд.")
+  end
+
+  def move_train_backward
+    move_train(:move_backward, "Поезд перемещён назад.")
+  end
+
+  def list_stations_trains
+    @stations.each do |station|
+      puts "\nСтанция: #{station.name}"
+      station.trains.each do |train|
+        puts "  Поезд №#{train.number} (#{train.class})"
+      end
+    end
+  end
+
+  def move_train(direction, success_message)
+    return puts "Нет поездов!" if @trains.empty?
+
+    train = select_from(@trains, 'Выберите поезд:')
+    return puts "У поезда нет маршрута!" unless train.route
+
+    train.send(direction)
+    puts "#{success_message} Сейчас он на станции: #{train.current_station.name}."
+  end
+
+  def select_from(collection, message)
+    return puts "Список пуст!" if collection.empty?
+    puts message
+    collection.each_with_index do |item, index|
+      display_name = item.is_a?(Train) ? "Поезд №#{item.number} (#{item.class.to_s})" : item.to_s
+      puts "#{index + 1}. #{display_name}"
+    end
+    collection[gets.to_i - 1]
+  end
+
+  def exit_app
+    puts "До свидания!"
     exit
-
-  else
-    puts 'Некорректный ввод, попробуйте снова.'
   end
 end
+
+Main.new.start

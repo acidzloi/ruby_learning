@@ -6,6 +6,8 @@ class Train
 
   attr_reader :number, :type, :carriages, :route, :current_station_index
 
+  TRAIN_NUMBER_FORMAT = /^[a-zа-я0-9]{3}-?[a-zа-я0-9]{2}$/i
+
   @@trains = {}
 
   def self.find(number)
@@ -20,6 +22,7 @@ class Train
     @route = nil
     @current_station_index = nil
 
+    validate!
     @@trains[number] = self
     register_instance
   end
@@ -93,8 +96,8 @@ class Train
   end
 
   def validate!
-    raise ValidationError, 'Номер не может быть пустым!' if number.nil? || number.strip.empty?
-    raise ValidationError, 'Неверный формат номера!' if number !~ TRAIN_NUMBER_FORMAT
+    raise "Номер не может быть пустым!" if number.nil? || number.strip.empty?
+    raise "Неверный формат номера!" if number !~ TRAIN_NUMBER_FORMAT
   end
 
 end

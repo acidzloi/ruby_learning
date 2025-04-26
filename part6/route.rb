@@ -8,6 +8,7 @@ class Route
   def initialize(start_station, end_station)
     @stations = [start_station, end_station]
 
+    validate!
     register_instance
   end
 
@@ -22,5 +23,11 @@ class Route
   def to_s
     station_names = @stations.map(&:name).join(' -> ')
     "Маршрут: #{station_names}"
+  end
+
+  def validate!
+    raise "Начальная станция не может быть пустой" if @stations.first.nil?
+    raise "Конечная станция не может быть пустой" if @stations.last.nil?
+    raise "Начальная и конечная станции не могут быть одинаковыми" if @stations.first == @stations.last
   end
 end

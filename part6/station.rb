@@ -20,7 +20,9 @@ class Station
     @name = name
     @trains = []
 
+    validate
     register_instance
+    @@stations << self
   end
 
   def accept_train(train)
@@ -35,5 +37,8 @@ class Station
     @trains.select { |train| train.type == type }
   end
 
+  def validate
+    raise if @name.strip.empty?
+  end
 
 end
