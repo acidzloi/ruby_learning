@@ -44,5 +44,17 @@ class Station
   def each_train
     @trains.each { |train| yield(train) } if block_given?
   end
-  
+
+  def list_trains
+    if @trains.empty?
+      puts "На станции нет поездов."
+    else
+      puts "Список поездов на станции #{@name}:"
+      @trains.each do |train|
+        puts "Поезд №#{train.number} (тип: #{train.type})"
+        train.list_carriages  # Выводим список вагонов поезда
+      end
+    end
+  end
+
 end

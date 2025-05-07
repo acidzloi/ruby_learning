@@ -92,6 +92,24 @@ class Train
     @carriages.each { |carriage| yield(carriage) } if block_given?
   end
 
+
+  # Метод для добавления вагона
+  def add_carriage(carriage)
+    @carriages << carriage
+  end
+
+  # Метод для вывода списка вагонов
+  def list_carriages
+    puts "Список вагонов поезда #{@number}:"
+    @carriages.each_with_index do |carriage, index|
+      if carriage.is_a?(PassengerCarriage)
+        puts "#{index + 1}. Пассажирский вагон, мест: #{carriage.total_seats}, занятых: #{carriage.occupied_seats}"
+      elsif carriage.is_a?(CargoCarriage)
+        puts "#{index + 1}. Грузовой вагон, объём: #{carriage.total_volume}, занято: #{carriage.occupied_volume}"
+      end
+    end
+  end
+
   private
 
   # Метод проверяет, можно ли добавить вагон к этому поезду (должен быть переопределен в подклассах)

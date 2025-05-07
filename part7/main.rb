@@ -62,7 +62,10 @@ class Main
     { id: 6, title: 'Отцепить вагон от поезда', action: :remove_carriage }, 
     { id: 7, title: 'Переместить поезд вперед', action: :move_train_forward }, 
     { id: 8, title: 'Переместить поезд назад', action: :move_train_backward }, 
-    { id: 9, title: 'Просмотреть список станций и поездов на станциях', action: :list_stations_trains }, 
+    { id: 9, title: 'Просмотреть список станций и поездов на станциях', action: :list_stations_trains },
+    { id: 10, title: 'Просмотреть список вагонов у поезда', action: :list_carriages_of_train },
+    { id: 11, title: 'Просмотреть список поездов на станции', action: :list_trains_on_station_action },
+    { id: 12, title: 'Занять место или объем в вагоне', action: :occupy_seat_or_volume },
     { id: 0, title: 'Выйти', action: :exit_app } 
   ]
 
@@ -190,7 +193,19 @@ class Main
 
     train = select_from(@trains, 'Выберите поезд:')
 
-    carriage = train.is_a?(PassengerTrain) ? PassengerCarriage.new : CargoCarriage.new
+    if train.is_a?(PassengerTrain)
+      print "Введите количество мест в вагоне: "
+      seats = gets.to_i
+      carriage = PassengerCarriage.new(seats)
+    elsif train.is_a?(CargoTrain)
+      print "Введите объём вагона: "
+      volume = gets.to_f
+      carriage = CargoCarriage.new(volume)
+    else
+      puts "Неизвестный тип поезда."
+      return
+    end
+
     if train.add_carriage(carriage)
       puts "Вагон успешно добавлен к поезду №#{train.number}."
     else
@@ -226,6 +241,43 @@ class Main
     end
   end
 
+  def list_carriages_of_train
+    return puts "Нет поездов!" if @trains.empty?
+  
+    train = select_from(@trains, 'Выберите поезд:')  # Выбираем поезд
+    return unless train  # Проверяем, что поезд выбран
+  
+    train.list_carriages  # Выводим список вагонов поезда
+  end
+
+  def list_trains_on_station_action
+    return puts "Нет станций!" if @stations.empty?
+  
+    station = select_from(@stations, 'Выберите станцию:')  # Выбираем станцию
+    return unless station  # Проверяем, что станция выбрана
+  
+    station.list_trains  # Выводим список поездов на станции
+  end
+
+  def occupy_seat_or_volume
+    return puts "Нет поездов!" if @trains.empty?
+  
+    train = select_from(@trains, 'Выберите поезд:')
+    carriage = select_from(train.carriages, 'Выберите вагон:')  # Для простоты выбираем вагон из поезда
+  
+    if carriage.is_a?(PassengerCarriage)
+      carriage.take_seat
+      puts "Место занято! Осталось #{carriage.free_seats} свободных мест."
+    elsif carriage.is_a?(CargoCarriage)
+      print "Введите объем для занять: "
+      volume = gets.to_i
+      carriage.take_volume(volume)
+      puts "Объем занят! Осталось #{carriage.free_volume} свободного объема."
+    else
+      puts "Некорректный тип вагона."
+    end
+  end
+
   def move_train(direction, success_message)
     return puts "Нет поездов!" if @trains.empty?
 
@@ -240,7 +292,14 @@ class Main
     return puts "Список пуст!" if collection.empty?
     puts message
     collection.each_with_index do |item, index|
-      display_name = item.is_a?(Train) ? "Поезд №#{item.number} (#{item.class.to_s})" : item.to_s
+      display_name = if item.is_a?(Train)
+                        "Поезд №#{item.number} (#{item.class.to_s})"                    
+                    elsif item.is_a?(Station)
+                         "Станция: #{item.name}"  # Здесь используем атрибут name станции
+                    else
+                          item.to_s
+                    end
+
       puts "#{index + 1}. #{display_name}"
     end
     collection[gets.to_i - 1]

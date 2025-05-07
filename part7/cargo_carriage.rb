@@ -1,9 +1,8 @@
 class CargoCarriage
     attr_reader :type, :total_volume, :occupied_volume
   
-    def initialize
-      super()
-      @type = :cargo
+    def initialize(total_volume)
+      super(:cargo)
       @total_volume = total_volume
       @occupied_volume = 0.0
     end
@@ -18,4 +17,7 @@ class CargoCarriage
       @total_volume - @occupied_volume
     end
     
+    def to_s
+      "Грузовой вагон - Свободный объем: #{free_volume}, Занятый объем: #{occupied_volume}"
+    end
   end
