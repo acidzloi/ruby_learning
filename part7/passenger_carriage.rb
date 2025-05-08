@@ -1,30 +1,16 @@
 require_relative 'carriage'
 
 class PassengerCarriage < Carriage
-    attr_reader :type, :total_seats, :occupied_seats
-  
-    def initialize(total_seats)
-      super(:passenger)
-      @total_seats = total_seats
-      @occupied_seats = 0
+    def initialize(total_place)
+      super(:passenger, total_place)
     end
 
     def take_seat
-      raise 'No available seats' if full?
-  
-      @occupied_seats += 1
+      take_place(1)
     end
   
-    def free_seats
-      @total_seats - @occupied_seats
-    end
-  
-    def full?
-      @occupied_seats >= @total_seats
-    end
-
     def to_s
-      "Пассажирский вагон - Свободных мест: #{free_seats}, Занятых мест: #{occupied_seats}"
+      "Пассажирский вагон - Свободных мест: #{free_place}, Занятых мест: #{used_place}"
     end
   end
   

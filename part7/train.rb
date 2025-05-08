@@ -103,9 +103,9 @@ class Train
     puts "Список вагонов поезда #{@number}:"
     @carriages.each_with_index do |carriage, index|
       if carriage.is_a?(PassengerCarriage)
-        puts "#{index + 1}. Пассажирский вагон, мест: #{carriage.total_seats}, занятых: #{carriage.occupied_seats}"
+        puts "#{index + 1}. Пассажирский вагон, мест: #{carriage.total_place}, занятых: #{carriage.used_place}"
       elsif carriage.is_a?(CargoCarriage)
-        puts "#{index + 1}. Грузовой вагон, объём: #{carriage.total_volume}, занято: #{carriage.occupied_volume}"
+        puts "#{index + 1}. Грузовой вагон, объём: #{carriage.total_place}, занято: #{carriage.used_place}"
       end
     end
   end

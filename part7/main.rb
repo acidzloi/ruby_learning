@@ -267,12 +267,12 @@ class Main
   
     if carriage.is_a?(PassengerCarriage)
       carriage.take_seat
-      puts "Место занято! Осталось #{carriage.free_seats} свободных мест."
+      puts "Место занято! Осталось #{carriage.free_place} свободных мест."
     elsif carriage.is_a?(CargoCarriage)
-      print "Введите объем для занять: "
+      print "Введите объем который хотите занять: "
       volume = gets.to_i
-      carriage.take_volume(volume)
-      puts "Объем занят! Осталось #{carriage.free_volume} свободного объема."
+      carriage.take_place(volume)
+      puts "Объем занят! Осталось #{carriage.free_place} свободного объема."
     else
       puts "Некорректный тип вагона."
     end
